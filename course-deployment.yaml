@@ -50,6 +50,10 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
+    
+    alb.ingress.kubernetes.io/group.name: students-app
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    
 spec:
   ingressClassName: alb
   rules:
