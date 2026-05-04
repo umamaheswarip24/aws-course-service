@@ -2,49 +2,51 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: cloudstudents
-  name: deployment-2048-sush
+  name: deployment-course-uma   # 🔴 YOUR deployment name
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: app-2048-sush
+      app: course-uma           # 🔴 YOUR label
   replicas: 1
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: app-2048-sush
+        app: course-uma
     spec:
       containers:
-      - image: public.ecr.aws/l6m2t8p7/docker-2048:latest
+      - name: course-uma        # 🔴 YOUR container name
+        image: 991524241826.dkr.ecr.ap-south-2.amazonaws.com/uma/course-service:latest   # 🔴 YOUR ECR image
         imagePullPolicy: Always
-        name: app-2048-sush
         ports:
-        - containerPort: 80
+        - containerPort: 3001    # 🔴 IMPORTANT (Flask runs on 3001)
 
         env:
         - name: AWS_REGION
-          value: "dev"
+          value: "ap-south-2"    # 🔴 FIXED (was "dev" ❌)
         - name: COURSE_SERVICE_URL
-          value: ""
+          value: ""              # optional (keep if needed)
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   namespace: cloudstudents
-  name: service-2048-sush
+  name: service-course-uma     # 🔴 YOUR service name
 spec:
-  ports:
-    - port: 80
-      targetPort: 80
-      protocol: TCP
   type: NodePort
   selector:
-    app.kubernetes.io/name: app-2048-sush
+    app: course-sush
+  ports:
+    - port: 3001               # 🔴 match container
+      targetPort: 3001
+      protocol: TCP
+
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   namespace: cloudstudents
-  name: ingress-2048-sush
+  name: ingress-course-uma    # 🔴 YOUR ingress name
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
@@ -57,6 +59,6 @@ spec:
           pathType: Prefix
           backend:
             service:
-              name: service-2048-sush
+              name: service-course-sush
               port:
-                number: 80
+                number: 3001
