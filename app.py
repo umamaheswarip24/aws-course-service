@@ -1,23 +1,28 @@
 import os
 import boto3
 from flask import Flask, jsonify, request
- 
-client = boto3.client('sts')
-print(client.get_caller_identity())
 
 app = Flask(__name__)
 
-REGION = os.environ.get("AWS_REGION", "ap-south-2")
- 
-dynamodb      = boto3.resource("dynamodb", region_name=REGION)
-courses_table = dynamodb.Table("course-soloman")
- 
- 
+# AWS Region
+REGION = os.environ.get("AWS_REGION", "ap-south-2")   # 🔴 KEEP or change if needed
+
+# DynamoDB Setup
+dynamodb = boto3.resource("dynamodb", region_name=REGION)
+courses_table = dynamodb.Table("uma-course-table")     # 🔴 CHANGE: your DynamoDB table name
+
+
+# ---------------------------
+# HEALTH CHECK
+# ---------------------------
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok", "service": "course-service"}), 200
- 
- 
+    return jsonify({
+        "status": "ok",
+        "service": "course-service"   # 🔴 CHANGE: same as above
+    }), 200
+
+
 # ---------------------------
 # CREATE COURSE (POST)
 # ---------------------------
@@ -31,7 +36,7 @@ def create_course():
             return jsonify({"error": "Both 'id' and 'title' are required"}), 400
 
         item = {
-            "id": data["id"],
+            "id": data["id"],          # 🔴 MAKE SURE this matches your table PK
             "title": data["title"]
         }
 
@@ -44,22 +49,33 @@ def create_course():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
- 
- 
-@app.route("/courses/<course_code>", methods=["GET"])
-def get_course(course_code):
-    resp = courses_table.get_item(Key={"id": course_code})
+
+
+# ---------------------------
+# GET SINGLE COURSE
+# ---------------------------
+@app.route("/courses/<course_id>", methods=["GET"])
+def get_course(course_id):
+    resp = courses_table.get_item(Key={"id": course_id})   # 🔴 MUST match your PK
     item = resp.get("Item")
+
     if not item:
         return jsonify({"error": "Course not found"}), 404
+
     return jsonify(item), 200
- 
- 
+
+
+# ---------------------------
+# LIST COURSES
+# ---------------------------
 @app.route("/courses", methods=["GET"])
 def list_courses():
     resp = courses_table.scan(Limit=50)
     return jsonify(resp.get("Items", [])), 200
- 
- 
+
+
+# ---------------------------
+# RUN APP
+# ---------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3001, debug=False)
