@@ -1,18 +1,16 @@
 import os
 import boto3
-from flask import Flask, jsonify
-from aws_xray_sdk.core import xray_recorder
-from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
+from flask import Flask, jsonify, request
  
+client = boto3.client('sts')
+print(client.get_caller_identity())
+
 app = Flask(__name__)
- 
-xray_recorder.configure(service="course-service")
-XRayMiddleware(app, xray_recorder)
- 
+
 REGION = os.environ.get("AWS_REGION", "ap-south-2")
  
 dynamodb      = boto3.resource("dynamodb", region_name=REGION)
-courses_table = dynamodb.Table("Courses")
+courses_table = dynamodb.Table("course-soloman")
  
  
 @app.route("/health")
@@ -20,9 +18,37 @@ def health():
     return jsonify({"status": "ok", "service": "course-service"}), 200
  
  
+# ---------------------------
+# CREATE COURSE (POST)
+# ---------------------------
+@app.route("/courses", methods=["POST"])
+def create_course():
+    try:
+        data = request.get_json()
+
+        # validation
+        if not data or "id" not in data or "title" not in data:
+            return jsonify({"error": "Both 'id' and 'title' are required"}), 400
+
+        item = {
+            "id": data["id"],
+            "title": data["title"]
+        }
+
+        courses_table.put_item(Item=item)
+
+        return jsonify({
+            "message": "Course created successfully",
+            "course": item
+        }), 201
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+ 
+ 
 @app.route("/courses/<course_code>", methods=["GET"])
 def get_course(course_code):
-    resp = courses_table.get_item(Key={"code": course_code})
+    resp = courses_table.get_item(Key={"id": course_code})
     item = resp.get("Item")
     if not item:
         return jsonify({"error": "Course not found"}), 404
